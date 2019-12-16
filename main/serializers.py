@@ -1,4 +1,5 @@
-from django.contrib.auth.models import User, Group
+from django.contrib.auth.models import User
+from rest_framework.authtoken.models import Token
 from rest_framework import serializers
 from .models import Game, Deal, Point
 
@@ -6,7 +7,14 @@ from .models import Game, Deal, Point
 class UserSerializer(serializers.HyperlinkedModelSerializer):
     class Meta:
         model = User
-        fields = ['username']
+        fields = ['username', 'password']
+        extra_kwargs = {'password': {'required': True, 'write_only': True}}
+
+    def create(self, validated_data):
+        user = User.objects.create_user(**validated_data)
+        token = Token.objects.create(user=user)
+        print(type(token))
+        return user
 
 
 class PointSerializer(serializers.ModelSerializer):
@@ -30,7 +38,7 @@ class GameSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Game
-        fields = ['login', 'password', 'deals']
+        fields = ['login', 'password', 'deals', 'authorization']
         extra_kwargs = {'password': {'required': True, 'write_only': True}}
 
 
