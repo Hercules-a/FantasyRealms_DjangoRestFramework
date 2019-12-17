@@ -4,7 +4,8 @@ from django.contrib.auth.models import User
 from .serializers import GameSimpleSerializer, GameSerializer, UserSerializer
 from .models import Game
 from rest_framework.authtoken.models import Token
-
+from rest_framework.decorators import action
+from django.http.response import HttpResponseNotAllowed
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -36,3 +37,15 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameSerializer(instance)
         return Response(serializer.data)
 
+    @action(detail=True, methods=['put'])
+    def join(self, request, *args, **kwargs):
+        game = Game.objects.get(login=request.data['login'])
+        if game.password == request.data['password']:
+            token = Token.objects.get(key=request.data['token'])
+            game.authorization.add(token)
+            token.user.extend_user.active_game = game
+            token.user.extend_user.save()
+            serializer = GameSerializer(game, many=False)
+            return Response(serializer.data)
+        else:
+            return HttpResponseNotAllowed('Wrong password!')

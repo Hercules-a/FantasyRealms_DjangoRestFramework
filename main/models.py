@@ -1,14 +1,6 @@
 from django.db import models
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-from django.dispatch import receiver
-from django.db.models.signals import post_save
-
-
-# @receiver(post_save, sender=User)
-# def create_auth_token(sender, instance=None, created=False, **kwargs):
-#     if created:
-#         Token.objects.create(user=instance)
 
 
 class Game(models.Model):
@@ -18,6 +10,11 @@ class Game(models.Model):
 
     def __str__(self):
         return self.login
+
+
+class ExtendUser(models.Model):
+    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='extend_user', blank=True, null=True)
+    active_game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='active_game', blank=True, null=True)
 
 
 class Deal(models.Model):
