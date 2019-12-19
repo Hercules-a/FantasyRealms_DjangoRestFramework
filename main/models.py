@@ -1,6 +1,8 @@
 from django.db import models
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
+from django.dispatch import receiver
+from django.db.models.signals import post_save
 
 
 class Game(models.Model):
@@ -11,6 +13,17 @@ class Game(models.Model):
     def __str__(self):
         return self.login
 
+    def scoreboard(self):
+        board = {}
+        for token in self.authorization.all():
+            user = token.user
+            score = 0
+            for deal in self.deals.all():
+                for points in deal.points.filter(user=user):
+                    score += points.points
+            board.update({user.username: score})
+        return sorted(board.items(), key=lambda kv: (kv[1], kv[0]))
+
 
 class ExtendUser(models.Model):
     user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='extend_user', blank=True, null=True)
@@ -18,8 +31,11 @@ class ExtendUser(models.Model):
 
 
 class Deal(models.Model):
-    count = models.IntegerField(default=1, unique=True)
+    count = models.IntegerField()
     game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='deals')
+
+    class Meta:
+        unique_together = ('count', 'game')
 
     def __str__(self):
         return '{}, Round: {}'.format(self.game.login, self.count)
@@ -35,3 +51,7 @@ class Point(models.Model):
 
     def __str__(self):
         return '{} Round {} {}: {}'.format(self.deal.game.login, self.deal.count, self.user.username, self.points)
+
+
+
+

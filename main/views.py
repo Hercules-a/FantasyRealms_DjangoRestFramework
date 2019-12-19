@@ -1,11 +1,13 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
 from django.contrib.auth.models import User
-from .serializers import GameSimpleSerializer, GameSerializer, UserSerializer
-from .models import Game
+from .serializers import GameSimpleSerializer, GameSerializer, UserSerializer, DealSerializer
+from .models import Game, Deal, Point
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
 from django.http.response import HttpResponseNotAllowed
+from django.db.utils import IntegrityError
+
 
 class UserViewSet(viewsets.ModelViewSet):
     """
@@ -32,7 +34,7 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameSimpleSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def retrieve(self, request, *args, **kwargs):
+    def retrieve(self, *args, **kwargs):
         instance = self.get_object()
         serializer = GameSerializer(instance)
         return Response(serializer.data)
@@ -49,3 +51,26 @@ class GameViewSet(viewsets.ModelViewSet):
             return Response(serializer.data)
         else:
             return HttpResponseNotAllowed('Wrong password!')
+
+    @action(detail=True, methods=['put'])
+    def new_deal(self, *args, **kwargs):
+        instance = self.get_object()
+        count = instance.deals.all().order_by('-count')[0].count + 1
+        Deal.objects.create(count=count, game=instance)
+        serializer = GameSerializer(instance, many=False)
+        return Response(serializer.data)
+
+    @action(detail=True, methods=['put'])
+    def add_points(self, request, *args, **kwargs):
+        instance = self.get_object()
+        deal = instance.deals.all().order_by('-count')[0]
+        user = Token.objects.get(key=request.data['token']).user
+        points = request.data['points']
+        try:
+            Point.objects.create(points=points, user=user, deal=deal)
+        except IntegrityError:
+            edit = Point.objects.get(user=user, deal=deal)
+            edit.points = points
+            edit.save()
+        serializer = GameSerializer(instance, many=False)
+        return Response(serializer.data)
