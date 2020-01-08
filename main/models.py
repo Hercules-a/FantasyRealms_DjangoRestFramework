@@ -1,14 +1,13 @@
 from django.db import models
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
-from django.dispatch import receiver
-from django.db.models.signals import post_save
 
 
 class Game(models.Model):
     login = models.CharField(max_length=20, unique=True)
     password = models.CharField(max_length=20)
-    authorization = models.ManyToManyField(Token, blank=True)
+    authorization = models.ManyToManyField(Token)
+    admin = models.ForeignKey(Token, on_delete=models.CASCADE, related_name='admin')
 
     def __str__(self):
         return self.login
@@ -22,7 +21,7 @@ class Game(models.Model):
                 for points in deal.points.filter(user=user):
                     score += points.points
             board.update({user.username: score})
-        return sorted(board.items(), key=lambda kv: (kv[1], kv[0]))
+        return sorted(board.items(), key=lambda kv: (kv[-1], kv[0]), reverse=True)
 
 
 class ExtendUser(models.Model):

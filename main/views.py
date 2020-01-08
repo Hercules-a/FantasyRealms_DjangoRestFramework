@@ -24,26 +24,32 @@ class GameViewSet(viewsets.ModelViewSet):
     def create(self, request, *args, **kwargs):
         game = Game.objects.create(login=request.data['login'],
                                    password=request.data['password'])
-        token = Token.objects.get(key=request.data['token'])
+        token = Token.objects.get(key=request.headers['authorization'][6:])
         game.authorization.add(token)
+        game.admin.add(token)
         serializer = GameSerializer(game, many=False)
         return Response(serializer.data)
 
     def list(self, request, *args, **kwargs):
-        queryset = Game.objects.all()
+        print(request.data)
+        print(self.request.headers['authorization'])
+        queryset = Game.objects.filter(authorization=request.headers['authorization'][6:])
         serializer = GameSimpleSerializer(queryset, many=True)
         return Response(serializer.data)
 
-    def retrieve(self, *args, **kwargs):
+    def retrieve(self, request, *args, **kwargs):
         instance = self.get_object()
         serializer = GameSerializer(instance)
-        return Response(serializer.data)
+        if any(str(element) == request.headers['authorization'][6:] for element in instance.authorization.all()):
+            return Response(serializer.data)
+        else:
+            return HttpResponseNotAllowed('Not allowed')
 
     @action(detail=True, methods=['put'])
     def join(self, request, *args, **kwargs):
         game = Game.objects.get(login=request.data['login'])
         if game.password == request.data['password']:
-            token = Token.objects.get(key=request.data['token'])
+            token = Token.objects.get(key=request.headers['authorization'][6:])
             game.authorization.add(token)
             token.user.extend_user.active_game = game
             token.user.extend_user.save()
@@ -64,7 +70,7 @@ class GameViewSet(viewsets.ModelViewSet):
     def add_points(self, request, *args, **kwargs):
         instance = self.get_object()
         deal = instance.deals.all().order_by('-count')[0]
-        user = Token.objects.get(key=request.data['token']).user
+        user = Token.objects.get(key=request.headers['authorization'][6:]).user
         points = request.data['points']
         try:
             Point.objects.create(points=points, user=user, deal=deal)

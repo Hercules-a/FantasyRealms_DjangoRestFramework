@@ -26,11 +26,15 @@ class PointSerializer(serializers.ModelSerializer):
 
 
 class DealSerializer(serializers.ModelSerializer):
-    points = PointSerializer(many=True)
+    points = serializers.SerializerMethodField()
 
     class Meta:
         model = Deal
         fields = ['count', 'points']
+
+    def get_points(self, instance):
+        points = instance.points.all().order_by('-points')
+        return PointSerializer(points, many=True).data
 
 
 class GameSerializer(serializers.ModelSerializer):
