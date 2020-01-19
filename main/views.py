@@ -1,7 +1,7 @@
 from rest_framework import viewsets
 from rest_framework.response import Response
 from django.contrib.auth.models import User
-from .serializers import GameSimpleSerializer, GameSerializer, UserSerializer, DealSerializer
+from .serializers import GameSerializer, UserSerializer, DealSerializer
 from .models import Game, Deal, Point
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
@@ -18,8 +18,11 @@ class UserViewSet(viewsets.ModelViewSet):
 
 
 class GameViewSet(viewsets.ModelViewSet):
-    queryset = Game.objects.all()
     serializer_class = GameSerializer
+
+    def get_queryset(self):
+        games = Game.objects.filter(authorization=self.request.headers['authorization'][6:]).order_by('-id')
+        return games
 
     def create(self, request, *args, **kwargs):
         game = Game.objects.create(login=request.data['login'],
@@ -29,21 +32,6 @@ class GameViewSet(viewsets.ModelViewSet):
         game.admin.add(token)
         serializer = GameSerializer(game, many=False)
         return Response(serializer.data)
-
-    def list(self, request, *args, **kwargs):
-        print(request.data)
-        print(self.request.headers['authorization'])
-        queryset = Game.objects.filter(authorization=request.headers['authorization'][6:])
-        serializer = GameSimpleSerializer(queryset, many=True)
-        return Response(serializer.data)
-
-    def retrieve(self, request, *args, **kwargs):
-        instance = self.get_object()
-        serializer = GameSerializer(instance)
-        if any(str(element) == request.headers['authorization'][6:] for element in instance.authorization.all()):
-            return Response(serializer.data)
-        else:
-            return HttpResponseNotAllowed('Not allowed')
 
     @action(detail=True, methods=['put'])
     def join(self, request, *args, **kwargs):
@@ -58,7 +46,7 @@ class GameViewSet(viewsets.ModelViewSet):
         else:
             return HttpResponseNotAllowed('Wrong password!')
 
-    @action(detail=True, methods=['put'])
+    @action(detail=True, methods=['post'])
     def new_deal(self, *args, **kwargs):
         instance = self.get_object()
         count = instance.deals.all().order_by('-count')[0].count + 1
@@ -66,7 +54,7 @@ class GameViewSet(viewsets.ModelViewSet):
         serializer = GameSerializer(instance, many=False)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['put'])
+    @action(detail=True, methods=['post'])
     def add_points(self, request, *args, **kwargs):
         instance = self.get_object()
         deal = instance.deals.all().order_by('-count')[0]

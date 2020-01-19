@@ -1,7 +1,7 @@
 from django.contrib.auth.models import User
 from rest_framework.authtoken.models import Token
 from rest_framework import serializers
-from .models import Game, Deal, Point, ExtendUser
+from .models import Game, Deal, Point
 
 
 class UserSerializer(serializers.HyperlinkedModelSerializer):
@@ -13,7 +13,6 @@ class UserSerializer(serializers.HyperlinkedModelSerializer):
     def create(self, validated_data):
         user = User.objects.create_user(**validated_data)
         Token.objects.create(user=user)
-        ExtendUser.objects.create(user=user)
         return user
 
 
@@ -38,15 +37,13 @@ class DealSerializer(serializers.ModelSerializer):
 
 
 class GameSerializer(serializers.ModelSerializer):
-    deals = DealSerializer(many=True, read_only=True)
+    deals = serializers.SerializerMethodField()
 
     class Meta:
         model = Game
-        fields = ['login', 'password', 'scoreboard', 'deals', 'authorization']
+        fields = ['id', 'login', 'password', 'scoreboard', 'deals', 'users']
         extra_kwargs = {'password': {'required': True, 'write_only': True}}
 
-
-class GameSimpleSerializer(serializers.ModelSerializer):
-    class Meta:
-        model = Game
-        fields = ['login', 'id']
+    def get_deals(self, instance):
+        deals = instance.deals.all().order_by('-count')
+        return DealSerializer(deals, many=True).data

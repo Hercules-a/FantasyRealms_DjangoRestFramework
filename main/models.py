@@ -23,10 +23,11 @@ class Game(models.Model):
             board.update({user.username: score})
         return sorted(board.items(), key=lambda kv: (kv[-1], kv[0]), reverse=True)
 
-
-class ExtendUser(models.Model):
-    user = models.OneToOneField(User, on_delete=models.CASCADE, related_name='extend_user', blank=True, null=True)
-    active_game = models.ForeignKey(Game, on_delete=models.CASCADE, related_name='active_game', blank=True, null=True)
+    def users(self):
+        users_list = []
+        for token in self.authorization.all():
+            users_list.append(token.user.username)
+        return users_list
 
 
 class Deal(models.Model):
