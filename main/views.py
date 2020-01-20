@@ -29,18 +29,16 @@ class GameViewSet(viewsets.ModelViewSet):
                                    password=request.data['password'])
         token = Token.objects.get(key=request.headers['authorization'][6:])
         game.authorization.add(token)
-        game.admin.add(token)
+        game.admin.set(token)
         serializer = GameSerializer(game, many=False)
         return Response(serializer.data)
 
-    @action(detail=True, methods=['put'])
+    @action(detail=False, methods=['post'])
     def join(self, request, *args, **kwargs):
         game = Game.objects.get(login=request.data['login'])
         if game.password == request.data['password']:
             token = Token.objects.get(key=request.headers['authorization'][6:])
             game.authorization.add(token)
-            token.user.extend_user.active_game = game
-            token.user.extend_user.save()
             serializer = GameSerializer(game, many=False)
             return Response(serializer.data)
         else:
