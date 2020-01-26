@@ -5,8 +5,9 @@ from .serializers import GameSerializer, UserSerializer, DealSerializer
 from .models import Game, Deal, Point
 from rest_framework.authtoken.models import Token
 from rest_framework.decorators import action
-from django.http.response import HttpResponseNotAllowed
+from django.http.response import HttpResponseNotAllowed, HttpResponseNotFound
 from django.db.utils import IntegrityError
+from django.core.exceptions import ObjectDoesNotExist
 
 
 class UserViewSet(viewsets.ModelViewSet):
@@ -25,17 +26,21 @@ class GameViewSet(viewsets.ModelViewSet):
         return games
 
     def create(self, request, *args, **kwargs):
-        game = Game.objects.create(login=request.data['login'],
-                                   password=request.data['password'])
         token = Token.objects.get(key=request.headers['authorization'][6:])
+        game = Game.objects.create(login=request.data['login'],
+                                   password=request.data['password'], admin=token)
         game.authorization.add(token)
-        game.admin.set(token)
+
+        Deal.objects.create(count=1, game=game)
         serializer = GameSerializer(game, many=False)
         return Response(serializer.data)
 
     @action(detail=False, methods=['post'])
     def join(self, request, *args, **kwargs):
-        game = Game.objects.get(login=request.data['login'])
+        try:
+            game = Game.objects.get(login=request.data['login'])
+        except ObjectDoesNotExist:
+            return HttpResponseNotFound('Game not found!')
         if game.password == request.data['password']:
             token = Token.objects.get(key=request.headers['authorization'][6:])
             game.authorization.add(token)
@@ -45,12 +50,18 @@ class GameViewSet(viewsets.ModelViewSet):
             return HttpResponseNotAllowed('Wrong password!')
 
     @action(detail=True, methods=['post'])
-    def new_deal(self, *args, **kwargs):
+    def new_deal(self, request, *args, **kwargs):
         instance = self.get_object()
-        count = instance.deals.all().order_by('-count')[0].count + 1
-        Deal.objects.create(count=count, game=instance)
-        serializer = GameSerializer(instance, many=False)
-        return Response(serializer.data)
+        deal = instance.deals.all().order_by('-count')[0]
+        print(len(deal.points.all()))
+        print(len(instance.authorization.all()))
+        if len(deal.points.all()) == len(instance.authorization.all()):
+            count = deal.count + 1
+            Deal.objects.create(count=count, game=instance)
+            serializer = GameSerializer(instance, many=False)
+            return Response(serializer.data)
+        else:
+            return HttpResponseNotAllowed('Not Allowed')
 
     @action(detail=True, methods=['post'])
     def add_points(self, request, *args, **kwargs):

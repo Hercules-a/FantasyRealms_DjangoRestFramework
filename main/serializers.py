@@ -41,7 +41,7 @@ class GameSerializer(serializers.ModelSerializer):
 
     class Meta:
         model = Game
-        fields = ['id', 'login', 'password', 'scoreboard', 'deals', 'users']
+        fields = ['id', 'login', 'password', 'scoreboard', 'deals', 'users', 'game_admin']
         extra_kwargs = {'password': {'required': True, 'write_only': True}}
 
     def get_deals(self, instance):

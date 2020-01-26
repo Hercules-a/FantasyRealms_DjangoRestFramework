@@ -17,7 +17,7 @@ class Game(models.Model):
         for token in self.authorization.all():
             user = token.user
             score = 0
-            for deal in self.deals.all():
+            for deal in self.deals.all().order_by('-count')[1:]:
                 for points in deal.points.filter(user=user):
                     score += points.points
             board.update({user.username: score})
@@ -28,6 +28,9 @@ class Game(models.Model):
         for token in self.authorization.all():
             users_list.append(token.user.username)
         return users_list
+
+    def game_admin(self):
+        return self.admin.user.username
 
 
 class Deal(models.Model):
