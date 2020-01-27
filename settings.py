@@ -20,9 +20,9 @@ BASE_DIR = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 SECRET_KEY = config('SECRET_KEY')
 
 # SECURITY WARNING: don't run with debug turned on in production!
-DEBUG = config('DEBUG', default=False, cast=bool)
+DEBUG = config('DEBUG')
 
-ALLOWED_HOSTS = ['fantasy-realms-rest.herokuapp.com', 'localhost:8000']
+ALLOWED_HOSTS = ['fantasy-realms-rest.herokuapp.com', '127.0.0.1']
 
 
 # Application definition
