@@ -8,5 +8,3 @@ urlpatterns = [
     path('admin/', admin.site.urls),
     path('main/', include(urls)),
     path('api-token-auth/', views.obtain_auth_token)]
-
-print('s')
