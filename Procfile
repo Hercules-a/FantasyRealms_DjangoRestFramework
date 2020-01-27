@@ -1,1 +1,1 @@
-web: gunicorn wsgi --log-file -
+web: gunicorn fantasy_realms.wsgi --log-file -
