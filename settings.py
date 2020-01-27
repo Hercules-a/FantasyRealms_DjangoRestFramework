@@ -37,7 +37,7 @@ INSTALLED_APPS = [
     'rest_framework',
     'django_filters',
     'rest_framework.authtoken',
-    'fantasy_realms.main',
+    'main',
 ]
 
 
