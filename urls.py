@@ -1,6 +1,6 @@
 from django.contrib import admin
 from django.urls import include, path
-from .main import urls
+from fantasy_realms.main import urls
 from rest_framework.authtoken import views
 
 urlpatterns = [
